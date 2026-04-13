@@ -21,6 +21,7 @@ in rec {
   macSoftware = with pkgs; [
     azure-cli
     custom.azd
+    google-cloud-sdk
   ];
 
   sourcePreference = "wheel";
