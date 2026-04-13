@@ -1,16 +1,27 @@
-{ pkgs }:
-let
-  custom = import ./custom-packages.nix { inherit pkgs; };
-in
-rec {
+{
+  pkgs,
+  pythonMinorVersion,
+}: let
+  custom = import ./custom-packages.nix {inherit pkgs pythonMinorVersion;};
+in rec {
   pythonMinorVersion = "13";
 
-  dependencyGroups = [
-    "dev"
-    "docs"
-    "test"
-  ]
-  ++ (if cliViaNix then [ ] else "cli-utils");
+  dependencyGroups =
+    [
+      "dev"
+      "docs"
+      "test"
+    ]
+    ++ (
+      if cliViaNix
+      then []
+      else "cli-utils"
+    );
+
+  macSoftware = with pkgs; [
+    azure-cli
+    custom.azd
+  ];
 
   sourcePreference = "wheel";
 
@@ -21,7 +32,7 @@ rec {
   pureShellHook = ''
 
   '';
-  
+
   universalHook = ''
     # Undo dependency propagation by nixpkgs.
     unset PYTHONPATH
@@ -39,7 +50,7 @@ rec {
 
   fhsShellHook = ''
     # Adjust library path for binaries that expect /lib etc.
-    export LD_LIBRARY_PATH="/lib:$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath [ pkgs.libuuid ]}"
+    export LD_LIBRARY_PATH="/lib:$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath [pkgs.libuuid]}"
   '';
 
   python = pkgs."python3${pythonMinorVersion}";
@@ -95,22 +106,20 @@ rec {
       ]);
   };
 
-  fhsSystemPackages =
-    pkgs:
-    (with pkgs; [
-      stdenv.cc.cc.lib
-      zlib
-      libuuid
-      file
-      libz
-      gcc
-      which
-      openssh
-    ]);
+  fhsSystemPackages = pkgs: (with pkgs; [
+    stdenv.cc.cc.lib
+    zlib
+    libuuid
+    file
+    libz
+    gcc
+    which
+    openssh
+  ]);
 
-  commonVars = { };
+  commonVars = {};
 
-  pureVars = { };
+  pureVars = {};
 
   fhsVars = pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath pkgs.pythonManylinuxPackages.manylinux1;
@@ -143,8 +152,7 @@ rec {
 
   getPythonExecutable = pythonVirtualenv: "${pythonVirtualenv}/bin/python";
 
-  getNixLicenseName =
-    name:
+  getNixLicenseName = name:
     {
       "MIT" = "mit";
       "BSD-2-Clause" = "bsd2";
@@ -162,10 +170,11 @@ rec {
       "AGPL-3.0-only" = "agpl3Only";
       "AGPL-3.0-or-later" = "agpl3Plus";
     }
-    .${builtins.lower name};
+    .${
+      builtins.lower name
+    };
 
-  writeVars =
-    varSet:
+  writeVars = varSet:
     pkgs.lib.concatStringsSep "\n" (
       pkgs.lib.attrsets.mapAttrsToList (k: v: ''export ${k}="${v}"'') varSet
     );

@@ -1,7 +1,10 @@
-{ pkgs, pythonMinorVersion }:
-let
+{
+  pkgs,
+  pythonMinorVersion,
+}: let
   # COMMON ====================================================================
-  inherit (import ./variables-and-helpers.nix { inherit pkgs; })
+  inherit
+    (import ./variables-and-helpers.nix {inherit pkgs pythonMinorVersion;})
     cliViaNix
     commonEnv
     commonVars
@@ -13,6 +16,7 @@ let
     fhsSystemPackages
     fhsVars
     getPythonExecutable
+    macSoftware
     packageExecutableName
     packageNameNix
     packageNamePython
@@ -31,15 +35,16 @@ let
   envName = "py3.${pythonMinorVersion}";
 
   fhsDependencies =
-    (if cliViaNix then dependencies.flex else [ ]) ++ dependencies.nonPython ++ fhsSystemPackages;
-
+    (
+      if cliViaNix
+      then dependencies.flex
+      else []
+    )
+    ++ dependencies.nonPython ++ fhsSystemPackages;
   # # UV2NIX ====================================================================
   # workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ../.; };
-
   # pyprojectOverlay = workspace.mkPyprojectOverlay { sourcePreference = "wheel"; };
-
   # pyprojectOverrides = _final: _prev: { };
-
   # pythonSet = (pkgs.callPackage pyproject-nix.build.packages { inherit python; }).overrideScope (
   #   lib.composeManyExtensions [
   #     pyproject-build-systems.overlays.default
@@ -47,18 +52,13 @@ let
   #     pyprojectOverrides
   #   ]
   # );
-
   # editablePythonSet = pythonSet.overrideScope (
   #   workspace.mkEditablePyprojectOverlay { root = "$REPO_ROOT"; }
   # );
-
   # virtualenvForDev = editablePythonSet.mkVirtualEnv envName { ${packageNameNix} = dependencyGroups; };
-
   # virtualenvForPackage = pythonSet.mkVirtualEnv pkgEnvName workspace.deps.default;
-
   # pythonExecutableForDev = getPythonExecutable virtualenvForDev;
-in
-{
+in {
   # inherit packageNameNix;
 
   # package = virtualenvForPackage;
@@ -84,11 +84,12 @@ in
   uvShell = (
     pkgs.mkShell rec {
       name = "${envName}-fhs-uv";
-      packages = [
-        python
-        pkgs.uv
-      ]
-      ++ fhsDependencies;
+      packages =
+        [
+          python
+          pkgs.uv
+        ]
+        ++ fhsDependencies;
       profile = ''
         ${universalHook}
 
@@ -104,11 +105,12 @@ in
   uvFHS =
     (pkgs.buildFHSUserEnv rec {
       name = "${envName}-fhs-uv";
-      targetPkgs = [
-        python
-        pkgs.uv
-      ]
-      ++ fhsDependencies;
+      targetPkgs =
+        [
+          python
+          pkgs.uv
+        ]
+        ++ fhsDependencies;
       profile = ''
         ${universalHook}
 
@@ -132,14 +134,19 @@ in
   poetryShell = pkgs.mkShell {
     name = "${envName}-poetry-shell";
 
-    # equivalent to targetPkgs
-    packages = [
-      python
-      pkgs.poetry
-      pkgs.git
-    ]; #++ fhsDependencies;
+    packages =
+      [
+        python
+        pkgs.poetry
+        pkgs.git
+        pkgs.alejandra
+      ]
+      ++ (
+        if pkgs.system == "aarch64-darwin"
+        then macSoftware
+        else []
+      ); # ++ fhsDependencies;
 
-    # mkShell uses shellHook instead of profile
     shellHook = ''
       ${universalHook}
 
@@ -154,11 +161,12 @@ in
   poetryFHS =
     (pkgs.buildFHSUserEnv rec {
       name = "${envName}-fhs-poetry";
-      targetPkgs = [
-        python
-        pkgs.poetry
-      ]
-      ++ fhsDependencies;
+      targetPkgs =
+        [
+          python
+          pkgs.poetry
+        ]
+        ++ fhsDependencies;
       profile = ''
         ${universalHook}
 
