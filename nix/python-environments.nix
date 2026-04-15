@@ -155,6 +155,16 @@ in {
       #${fhsSetupPoetry}
 
       ${fhsShellHook}
+
+      if [ -d "$(poetry env info --path 2>/dev/null)" ]; then
+        source "$(poetry env info --path)/bin/activate"
+      fi
+
+      # if [[ "$SHELL" != *"zsh"* ]]; then
+      #   export SHELL=$(which zsh)
+      #   echo "Switching to Zsh with Poetry active"
+      #   exec zsh
+      # fi
     '';
   };
 
